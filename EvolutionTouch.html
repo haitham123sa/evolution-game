@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Tracing</title>
+</head>
+
+<body>
+    <canvas id="canvas" width="500" height="500" style="border:1px solid black;"></canvas>
+    <div>Number of Entries: <span id="entryCount">0</span></div>
+    <button onclick="saveTracing()">Save</button>
+    <button onclick="playbackTracings()">Play Time Lapse</button>
+    <button onclick="resetExercise()">Reset</button>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const entryCountElement = document.getElementById('entryCount');
+
+        const originalLine = { start: { x: 100, y: 250 }, end: { x: 400, y: 250 } };
+        const tracings = [];
+        let currentTracing = [];
+        let isDrawing = false;
+
+        function drawLine(start, end) {
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+        }
+
+        function saveTracing() {
+            tracings.push(currentTracing);
+            
+            clearCanvas();
+            for (let point of currentTracing) {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            entryCountElement.textContent = tracings.length;
+            currentTracing = [];
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function playbackTracings() {
+            let index = 0;
+            clearCanvas();
+
+            function drawNextTracing() {
+                if (index < tracings.length) {
+                    clearCanvas();
+                    for (let point of tracings[index]) {
+                        ctx.beginPath();
+                        ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    index++;
+                    setTimeout(drawNextTracing, 500);
+                }
+            }
+
+            drawNextTracing();
+        }
+
+        function resetExercise() {
+            tracings.length = 0;
+            currentTracing = [];
+            clearCanvas();
+            drawLine(originalLine.start, originalLine.end);
+            entryCountElement.textContent = 0;
+        }
+
+        function getEventPosition(e) {
+            if (e.touches) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+            } else {
+                return {
+                    x: e.offsetX,
+                    y: e.offsetY
+                };
+            }
+        }
+
+        function startDrawing(position) {
+            isDrawing = true;
+            currentTracing.push(position);
+        }
+
+        function draw(position) {
+            if (isDrawing) {
+                ctx.beginPath();
+                ctx.arc(position.x, position.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+                currentTracing.push(position);
+            }
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        canvas.addEventListener('mousedown', (e) => startDrawing(getEventPosition(e)));
+        canvas.addEventListener('mousemove', (e) => draw(getEventPosition(e)));
+        canvas.addEventListener('mouseup', stopDrawing);
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startDrawing(getEventPosition(e));
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(getEventPosition(e));
+        });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        if (tracings.length === 0) {
+            drawLine(originalLine.start, originalLine.end);
+        }
+    </script>
+</body>
+
+</html>
