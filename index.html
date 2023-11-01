@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Line Tracing</title>
 </head>
+
 <body>
     <canvas id="canvas" width="500" height="500" style="border:1px solid black;"></canvas>
     <div>Number of Entries: <span id="entryCount">0</span></div>
@@ -29,6 +31,8 @@
         }
 
         function saveTracing() {
+            if (currentTracing.length === 0) return; // Check if there's any tracing to save
+
             tracings.push(currentTracing);
             
             // Clear the canvas and redraw only the latest tracing
@@ -102,4 +106,5 @@
         });
     </script>
 </body>
+
 </html>
