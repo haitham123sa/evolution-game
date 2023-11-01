@@ -10,6 +10,12 @@
 <body>
     <canvas id="canvas" width="500" height="500" style="border:1px solid black;"></canvas>
     <div>Number of Entries: <span id="entryCount">0</span></div>
+    <div>
+        Timelapse Speed: <input type="range" id="speedSlider" min="100" max="2000" value="500" />ms
+    </div>
+    <div>
+        Loop Playback: <input type="checkbox" id="loopCheckbox" />
+    </div>
     <button onclick="saveTracing()">Save</button>
     <button onclick="playbackTracings()">Play Time Lapse</button>
     <button onclick="resetExercise()">Reset</button>
@@ -18,39 +24,40 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const entryCountElement = document.getElementById('entryCount');
+        const speedSlider = document.getElementById('speedSlider');
+        const loopCheckbox = document.getElementById('loopCheckbox');
 
         const originalLine = { start: { x: 100, y: 250 }, end: { x: 400, y: 250 } };
         const tracings = [];
         let currentTracing = [];
         let isDrawing = false;
+        let lastPoint = null;
 
-        function drawLine(start, end) {
-            ctx.moveTo(start.x, start.y);
-            ctx.lineTo(end.x, end.y);
+        function drawSegment(from, to) {
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
             ctx.stroke();
         }
 
         function saveTracing() {
-            if (currentTracing.length === 0) return; // Check if there's any tracing to save
-
-            tracings.push(currentTracing);
-            
-            // Clear the canvas and redraw only the latest tracing
+            if (currentTracing.length <= 1) return;
+            tracings.push([...currentTracing]);
             clearCanvas();
-            for (let point of currentTracing) {
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // Update entry count
+            redrawTracing(currentTracing);
             entryCountElement.textContent = tracings.length;
-
             currentTracing = [];
+            lastPoint = null;
         }
 
         function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function redrawTracing(tracing) {
+            for (let i = 1; i < tracing.length; i++) {
+                drawSegment(tracing[i - 1], tracing[i]);
+            }
         }
 
         function playbackTracings() {
@@ -60,13 +67,14 @@
             function drawNextTracing() {
                 if (index < tracings.length) {
                     clearCanvas();
-                    for (let point of tracings[index]) {
-                        ctx.beginPath();
-                        ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
+                    redrawTracing(tracings[index]);
                     index++;
-                    setTimeout(drawNextTracing, 500);
+
+                    if (index === tracings.length && loopCheckbox.checked) {
+                        index = 0;
+                    }
+
+                    setTimeout(drawNextTracing, speedSlider.value);
                 }
             }
 
@@ -74,36 +82,34 @@
         }
 
         function resetExercise() {
-            tracings.length = 0; // Clear all tracings
+            tracings.length = 0;
             currentTracing = [];
             clearCanvas();
-            drawLine(originalLine.start, originalLine.end); // Draw the original line again
+            drawSegment(originalLine.start, originalLine.end);
             entryCountElement.textContent = 0;
+            lastPoint = null;
         }
 
-        // Initialize original line on canvas for the first user only
-        if (tracings.length === 0) {
-            drawLine(originalLine.start, originalLine.end);
-        }
-
-        // Canvas event listeners
         canvas.addEventListener('mousedown', (e) => {
             isDrawing = true;
-            currentTracing.push({ x: e.offsetX, y: e.offsetY });
+            lastPoint = { x: e.offsetX, y: e.offsetY };
+            currentTracing.push(lastPoint);
         });
 
         canvas.addEventListener('mousemove', (e) => {
             if (isDrawing) {
-                ctx.beginPath();
-                ctx.arc(e.offsetX, e.offsetY, 2, 0, Math.PI * 2);
-                ctx.fill();
-                currentTracing.push({ x: e.offsetX, y: e.offsetY });
+                const currentPoint = { x: e.offsetX, y: e.offsetY };
+                drawSegment(lastPoint, currentPoint);
+                currentTracing.push(currentPoint);
+                lastPoint = currentPoint;
             }
         });
 
         canvas.addEventListener('mouseup', () => {
             isDrawing = false;
         });
+
+        resetExercise();
     </script>
 </body>
 
